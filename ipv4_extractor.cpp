@@ -17,13 +17,17 @@
  *                stol/stoul/sscanf), no address parsers (inet_aton/inet_pton/
  *                inet_addr), and no regular expressions.
  *
- *                extractIPv4() is not wired into main() yet, so the input
- *                loop still discards each line. That comes later.
+ *                main() hands every line to extractIPv4() and reports the
+ *                address in dotted-quad form, as a 32-bit decimal value, and
+ *                with its port, or "none" when there is no port.
  *
  * Inputs       : Lines of arbitrary text typed on standard input. The
  *                case-sensitive line "END" terminates the program.
- * Outputs      : The prompt "Enter a string (or 'END' to quit): " for each
- *                line read, and "Program terminated." on exit.
+ * Outputs      : For each line, either
+ *                  Extracted IPv4 address: A.B.C.D (decimal value: N, port: P)
+ *                or
+ *                  Invalid input: no valid IPv4 address found
+ *                and "Program terminated." on exit.
  *
  * Creation Date: September 27, 2026
  *
@@ -36,6 +40,7 @@
  *   - The input loop in main(), however read failiure was added by me.
  *   - The extractIPv4() function and its helpers: isDigitChar(),
  *     isAddressChar(), parseOctet(), parsePort(), and tryCandidateAt()
+ *   - The result printing in main()
  * ============================================================================
  */
 
@@ -233,7 +238,29 @@ int main()
             break;
         }
 
-        //will add the functionality for the loop after.
+        unsigned long address = 0;  // Holds the 32-bit value on success.
+        int port = -1;              // Holds the port, or -1 when there is none.
+
+        if (extractIPv4(line, address, port)) {
+            // Unpack the stored value back into the four octets.
+            const unsigned long a = (address >> 24) & 0xFFul;
+            const unsigned long b = (address >> 16) & 0xFFul;
+            const unsigned long c = (address >> 8) & 0xFFul;
+            const unsigned long d = address & 0xFFul;
+
+            std::cout << "Extracted IPv4 address: "
+                      << a << '.' << b << '.' << c << '.' << d
+                      << " (decimal value: " << address << ", port: ";
+            if (port < 0) {
+                std::cout << "none";  // No port was in the string.
+            } else {
+                std::cout << port;
+            }
+            std::cout << ")" << std::endl;
+        } else {
+            // If it fails, print that no valid IPv4 address found.
+            std::cout << "Invalid input: no valid IPv4 address found" << std::endl;
+        }
     }
 
     std::cout << "Program terminated." << std::endl;
